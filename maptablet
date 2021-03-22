@@ -1,0 +1,76 @@
+#!/bin/zsh
+
+window_geometry=$(xdotool search --onlyvisible --class 'xournalpp' getwindowgeometry)
+
+offset=($(echo "$window_geometry" | sed -r -n 's/.*Position: ([-0-9]+),([0-9]+).*/\1 \2/p'))
+dimension=($(echo "$window_geometry" | sed -r -n 's/.*Geometry: ([-0-9]+)x([-0-9]+).*/\1 \2/p'))
+screen_info=($(xdpyinfo | sed -n -r 's/dimensions:\s+([0-9]+)x([0-9]+).*/\1 \2/p'))
+
+off_x=${offset[1]}
+off_y=${offset[2]}
+width=${dimension[1]}
+height=${dimension[2]}
+
+tot_w=${screen_info[1]}
+tot_h=${screen_info[2]}
+
+echo "tot w: $tot_w, tot h: $tot_h"
+echo "width: $width, height: $height"
+
+
+if (( width > height ))
+then
+	echo "orizzontale"
+	if (( width*5 > height*8 ))
+	then
+		echo "EXTREME"
+		tw=$width
+		th=$(( ( tw + 0.0 ) * 5 / 8 ))
+		toffx=$off_x
+		toffy=$(( -( th - height ) / 2 + off_y ))
+	else
+		echo "MODERATE"
+		th=$height
+		tw=$(( ( th + 0.0 ) * 8 / 5 ))
+		toffy=$off_y
+		toffx=$(( -( tw - width ) / 2 + off_x ))
+
+	fi
+
+	twn=$(( (tw + 0.0) / tot_w ))
+	thn=$(( (th + 0.0) / tot_h ))
+	toffxn=$(( (toffx + 0.0) / tot_w ))
+	toffyn=$(( (toffy + 0.0) / tot_h ))
+
+	params=($twn 0 $toffxn 0 $thn $toffyn 0 0 1)
+
+else
+	echo "verticale"
+	if (( width*8 > height*5 ))
+	then
+		echo "MODERATE"
+		tw=$width
+		th=$(( ( tw + 0.0 ) * 8 / 5 ))
+		toffx=$off_x
+		toffy=$(( -( th - height ) / 2 + off_y ))
+	else
+		echo "EXTREME"
+		th=$height
+		tw=$(( ( th + 0.0 ) * 5 / 8 ))
+		toffy=$off_y
+		toffx=$(( -( tw - width ) / 2 + off_x ))
+
+	fi
+
+
+	twn=$(( (tw + 0.0) / tot_w ))
+	thn=$(( (th + 0.0) / tot_h ))
+	toffxn=$(( (toffx + 0.0) / tot_w ))
+	toffyn=$(( (toffy + 0.0) / tot_h ))
+
+	params=(0 $twn $toffxn -$thn 0 $(( thn + toffyn )) 0 0 1)
+
+fi
+
+echo "${params[@]}"
+xinput set-prop 'Network Tablet Pen (0)' --type=float 'Coordinate Transformation Matrix' "${params[@]}"
